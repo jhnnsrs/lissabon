@@ -1,0 +1,7 @@
+author: jhnnsrs
+entrypoint: app
+identifier: lissabon
+package_manager: uv
+scopes:
+- read
+version: 0.0.1
