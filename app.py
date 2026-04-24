@@ -15,14 +15,6 @@ import numpy as np
 import time
 
 
-positions = [
-    {"X": 100059.87, "Y": 31311.75, "Z": -5000, "name": "ROI1"},
-    {"X": 101264.25, "Y": 42510.81, "Z": -5000, "name": "ROI2"},
-    {"X": 101847.37, "Y": 55489.87, "Z": -5000, "name": "ROI3"},
-    {"X": 102000.00, "Y": 56000.00, "Z": -5000, "name": "ROI4"},
-]
-
-
 @dataclass
 class Position:
     X: float
@@ -48,7 +40,7 @@ def startup_state() -> State:
     """Startup function to initialize the application."""
     log("Application has started.")
     return State(
-        positions=[Position(**pos) for pos in positions],
+        positions=[],
     )
 
 
@@ -89,42 +81,35 @@ def workflow(
     # ─────────────────────────────────────────────
     # COMMON VARIABLES
     # ─────────────────────────────────────────────
-
     LASER_SYTO9 = (
         "LED"  # Green channel — live bacteria (adjust name to match your setup)
     )
-    LASER_PI = (
-        "Laser2"  # Red channel   — dead bacteria  (adjust name to match your setup)
-    )
+    LASER_PI = "LED"  # Red channel   — dead bacteria  (adjust name to match your setup)
 
-    WASH_CYCLES = wash_cycles  # Number of PBS wash cycles per staining round
-    INTERVAL_TIME = washing_time  # Seconds between timelapse cycles
-    N_CYCLES = n_cycles  # Total number of staining cycles
+    WASH_CYCLES = 2  # Number of PBS wash cycles per staining round
+    INTERVAL_TIME = 5  # Seconds between timelapse cycles
+    N_CYCLES = 3  # Total number of staining cycles
 
-    # Z positions (absolute)
-    Z_UP = -3646.875
-    Z_DOWN = -8185.3125
-    Z_FOCUS = -5000  # Optional autofocus target (adjust based on your sample)
+    Z_UP = 43
+    Z_DOWN = -8500
+    Z_FOCUS = -90  # Optional autofocus target (adjust based on your sample)
 
-    # XY positions for each liquid station (absolute, µm)
-    POS_WASH = {"X": 100059.87, "Y": 31311.75}
-    POS_STAINING = {"X": 101264.25, "Y": 42510.81}
-    POS_MEDIUM = {"X": 101847.37, "Y": 55489.87}
-    POS_WASTE = {"X": 89423.31, "Y": 55488.87}
-    POS_INJ = {"X": 89997.37, "Y": 41675.18}
+    POS_WASH = {"X": 117000, "Y": 30000}
+    POS_STAINING = {"X": 117000, "Y": 30000}
+    POS_MEDIUM = {"X": 117000, "Y": 30000}
+    POS_WASTE = {"X": 117000, "Y": 49000}
+    POS_INJ = {"X": 125500, "Y": 38000}
 
-    # Pump parameters — tune steps/speed to your hardware
     PUMP_STEPS = 5000
     PUMP_SPEED = 10000
     PUMP_ACCEL = 100000
 
-    # Saved ROI positions (populated at runtime via save_current_position)
     saved_ROI_positions = [
-        {"X": 100059.87, "Y": 31311.75, "Z": -5000, "name": "ROI1"},
-        {"X": 101264.25, "Y": 42510.81, "Z": -5000, "name": "ROI2"},
-        {"X": 101847.37, "Y": 55489.87, "Z": -5000, "name": "ROI3"},
-        {"X": 102000.00, "Y": 56000.00, "Z": -5000, "name": "ROI4"},
-    ]  # Example ROI; replace with actual saved positions
+        {"X": 88890, "Y": 29500, "Z": 0, "name": "ROI1"},
+        {"X": 87390, "Y": 31230, "Z": 0, "name": "ROI2"},
+        {"X": 88309, "Y": 29333, "Z": 0, "name": "ROI3"},
+        {"X": 90000, "Y": 34090, "Z": 0, "name": "ROI4"},
+    ]  #
 
     # %
     # ─────────────────────────────────────────────
@@ -343,21 +328,22 @@ def workflow(
         setLaserState(laserName=laser_name, isActive=True, value=value)
         img = snapNumpyToFastAPI(2)
         print(img)
+        stardist.predict_flou2(img)
         setLaserState(laserName=laser_name, isActive=False, value=0)
         return img
 
-    def image_roi(roi: Position, cycle_index: int):
+    def image_roi(roi: dict, cycle_index: int):
         """
         Move to an ROI and acquire both SYTO9 (live) and PI (dead) channels.
         Returns a dict with the two images and metadata.
         """
-        print(f"  Imaging ROI '{roi.name}' — cycle {cycle_index + 1}")
+        print(f"  Imaging ROI '{roi['name']}' — cycle {cycle_index + 1}")
 
         # Navigate to ROI
         moveStage(
             None,
             axis="X",
-            distance=roi.X,
+            distance=roi["X"],
             is_absolute=True,
             is_blocking=True,
             speed=20000,
@@ -365,7 +351,7 @@ def workflow(
         moveStage(
             None,
             axis="Z",
-            distance=roi.Z,
+            distance=roi["Z"],
             is_absolute=True,
             is_blocking=True,
             speed=20000,
@@ -373,7 +359,7 @@ def workflow(
         moveStage(
             None,
             axis="Y",
-            distance=roi.Y,
+            distance=roi["Y"],
             is_absolute=True,
             is_blocking=False,
             speed=20000,
@@ -418,6 +404,14 @@ def workflow(
             int(i / (N_CYCLES - 1) * 100),
             f"Starting cycle {cycle_index + 1} of {N_CYCLES}...",
         )
+
+        # 5. Image every saved ROI
+        for roi in saved_ROI_positions:
+            print(f"\nImaging ROI '{roi['name']}' (Cycle {cycle_index + 1})")
+            result = image_roi(roi, cycle_index)
+            results.append(result)
+            time.sleep(2)
+
         print(f"\n{'=' * 50}")
         print(f"CYCLE {cycle_index + 1} / {N_CYCLES}")
         print(f"{'=' * 50}")
@@ -434,12 +428,6 @@ def workflow(
         # 4. Replenish growth media
         add_media()
 
-        # 5. Image every saved ROI
-        for roi in state.positions:
-            result = image_roi(roi, cycle_index)
-            results.append(result)
-            time.sleep(2)
-
         # 6. Return home and wait for next cycle
         move_up()
         log(f"Waiting {INTERVAL_TIME}s until next cycle...")
@@ -449,3 +437,13 @@ def workflow(
     log(f"Total image sets collected: {len(results)}")
     for r in results:
         log(f"  Cycle {r['cycle_index']} | {r['roi_name']}")
+
+
+@register
+def segment_image(image: Image) -> Image:
+    """Example function to segment an image using a dummy threshold."""
+    # Convert to numpy array, apply simple threshold, and convert back to Image
+    img_array = image.data
+    segmented_array = (img_array > 0.5).astype(np.uint8)  # Dummy segmentation
+    segmented_image = from_array_like(segmented_array, name=image.name + "_segmented")
+    return segmented_image
