@@ -15,17 +15,6 @@ import numpy as np
 import time
 
 
-@dataclass
-class Position:
-    X: float
-    Y: float
-    Z: float
-    name: str = "Unnamed Position"
-
-    def __str__(self):
-        return f"{self.name} (X: {self.X:.2f}, Y: {self.Y:.2f}, Z: {self.Z:.2f})"
-
-
 @state
 @dataclass
 class State:
