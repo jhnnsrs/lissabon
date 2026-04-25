@@ -81,6 +81,14 @@ Key positions and pump parameters are defined at the top of `workflow()` in [app
 - **Pump** — `PUMP_STEPS`, `PUMP_SPEED`, `PUMP_ACCEL`
 - **Lasers** — `LASER_SYTO9` (`"LED"`), `LASER_PI` (`"Laser2"`)
 
+## 3D printed adapters
+
+<p align="center">
+<img src="images/IMG_0084.jpg" alt="syringe adapter for uc2Frame" width="300"/>
+</p>
+
+**Figure 1.** 3D printed adapter for the syringe + UC2 Frame. STL files can be found in `STL files/` folder.
+
 ## Interactive Exploration
 
 [main.py](main.py) provides an interactive script for ad-hoc control via Arkitekt's `interactive` / `find` API — useful for testing individual functions (imaging, segmentation, pump movement) without running a full workflow.
