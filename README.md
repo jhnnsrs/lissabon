@@ -1,6 +1,6 @@
 # Lissabon
 
-An automated fluorescence microscopy controller for bacteria viability assays, built on the [Arkitekt Next](https://arkitekt.live) framework.
+An automated fluorescence microscopy controller for bacteria viability assays, built on the [Arkitekt Next](https://arkitekt.live) framework and the [UC2Frame](https://openuc2.com/frame-2/).
 
 ## Overview
 
