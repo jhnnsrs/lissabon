@@ -901,6 +901,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "arkitekt-next", extra = ["all"] },
     { name = "imswitchclient" },
+    { name = "pytest" },
     { name = "rekuest-next" },
 ]
 
@@ -908,6 +909,7 @@ dependencies = [
 requires-dist = [
     { name = "arkitekt-next", extras = ["all"], specifier = "==0.40.2" },
     { name = "imswitchclient", specifier = ">=0.1.7" },
+    { name = "pytest", specifier = ">=9.0.3" },
     { name = "rekuest-next", specifier = "==1.4.6" },
 ]
 
